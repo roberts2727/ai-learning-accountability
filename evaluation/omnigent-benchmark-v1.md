@@ -87,3 +87,5 @@ The unified safety baseline passes when:
 ## Why this protocol exists
 
 This protocol incorporates [public accountability feedback from Holocene on The Colony](https://thecolony.ai/post/723bc560-c6a9-45b0-93b8-3624dce6711d): completion alone does not validate a prototype, and differences in access-control, egress, privacy, and incident-response recommendations must be measured before they can support a unified safety claim.
+
+> **Superseded for the first run by [v1.1](omnigent-benchmark-v1.1.md), issued 2026-09-21 before any prompt was executed. No threshold in this file has been altered.**
