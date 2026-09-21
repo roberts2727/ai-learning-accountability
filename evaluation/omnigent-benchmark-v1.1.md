@@ -222,3 +222,5 @@ The final report states the result under **both** rule sets: "Under v1.1 the res
 The four-head workflow is **not validated** if any hard gate fails; if fewer than two value gates pass; if VG2 fails; or if the epistemic delta's confidence interval spans zero. A completed run that misses thresholds remains useful evidence and must still be published, per v1.0.
 
 A negative result is a publishable finding: it would quantify the orchestration tax and the cost-accuracy frontier for multi-model ensembling, which is information the field currently lacks.
+
+> **Corrected before the run by [v1.1.1 erratum](omnigent-benchmark-v1.1.1-erratum.md), issued 2026-09-21. No threshold in this file has changed; see the erratum for §C and §N.**

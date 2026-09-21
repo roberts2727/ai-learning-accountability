@@ -57,3 +57,29 @@ These are stated rather than mitigated, because this project cannot currently mi
 2. **N = 20 is underpowered** for any preference or small-effect claim. This is why preference is descriptive only.
 3. **Same-rater carryover** across the four scoring passes is irreducible with one reviewer; the 48-hour washout is a mitigation, not a cure.
 4. **Any LLM used for verification is a family member** of the system under test (the ensemble contains Claude, GPT, Gemini, and Qwen), so LLM checks are used as tripwires that raise a flag, never as authorities that decide a gate.
+
+---
+
+## v1.1.1 — 2026-09-21 (erratum)
+
+Issued before the first benchmark run. Corrects two defects found in v1.1 after commit and before any prompt was executed. **No threshold, gate, weight, dimension, or decision rule changed.** See [omnigent-benchmark-v1.1.1-erratum.md](omnigent-benchmark-v1.1.1-erratum.md).
+
+| # | Clause | Defect | Correction | Direction |
+|---|---|---|---|---|
+| E-1 | §C freeze clause | Named two mutually exclusive freeze triggers ("frozen at its commit timestamp" and "from the moment the first benchmark answer is generated"). A document whose gate H6 fails an answer for internal contradiction contained one. | Stricter reading governs: frozen at the v1.1 commit timestamp. Erratum mechanism defined and bounded by five conditions. | Tighter |
+| E-2 | §N reliability statistics | Required Krippendorff's alpha across raters, Cohen's kappa, and Gwet's AC1 — all inter-rater statistics — while §L states there is one reviewer. All three uncomputable; the pre-declared consequence could never trigger. The clause was decorative. | Inter-rater reliability declared uncomputable and not reported. Intra-rater test-retest substituted on a 25% seeded subsample after 48h washout. **Same thresholds (0.667 / 0.800), same consequence.** Explicitly labeled a weaker control that cannot detect bias held across both sittings. | Corrective; strictly weaker than independence, and labeled so |
+| E-3 | §E verification scope | Scope was never specified — v1.1 defined how claims are weighted and labeled but not how many must be verified. Unbounded as written; deciding it mid-scoring would be a researcher degree of freedom. | Specified pre-run: first-run answers only (40); 100% census of weight-3 safety-critical claims; seeded random sample of 4 weight-1/2 claims per answer. H5/H6/H7 remain full-answer checks. | Specification, not relaxation |
+
+### Why this is an erratum and not an amendment
+
+The public commitment made on The Colony was that *thresholds* would not change and that further methodology changes go to v2.0. No threshold changed here. E-1 and E-2 correct clauses that **cannot be executed as written** — an instruction naming a statistic that cannot exist is not a standard one can fail, it is a standard with no referent. E-3 fixes a scope the document left open, in public and before any data exists.
+
+The defects were found by the project owner, before the run, and disclosed unprompted rather than at results publication.
+
+### Residual weakness added by this erratum
+
+Test-retest reliability is a materially weaker control than inter-rater agreement. It measures self-consistency, not independence, and cannot detect a bias held consistently across both scoring sittings — including a systematic preference for the four-head output. With no independent reviewer, this run has **no control that can detect stable owner bias.** That is stated rather than mitigated.
+
+### Freeze
+
+No further erratum will be issued for this run.
