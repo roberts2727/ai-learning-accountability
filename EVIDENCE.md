@@ -46,6 +46,29 @@ Required metadata:
 
 Once captured, the credential counts as a completed learning module. It should be paired with an applied artifact to demonstrate both structured learning and practical implementation.
 
+## E-003 — SuperGrok purchase and OmniGent fifth-head experiment
+
+**Claim:** Robert purchased a $30 SuperGrok subscription to evaluate Grok Build as a potential fifth head in the OmniGent workflow.
+
+**Status:** **Purchase reported by Robert; experiment design documented; technical integration pending.**
+
+Evidence includes:
+
+- Robert's September 21, 2026 purchase report.
+- The fixed monthly cost recorded in [`data/monthly-cost-baseline.csv`](data/monthly-cost-baseline.csv).
+- The purchase event recorded in [`data/learning-expenses.csv`](data/learning-expenses.csv), with receipt or statement reconciliation kept pending rather than overstated.
+- A controlled experiment card: [`experiments/2026-09-21-grok-omnigent-fifth-head.md`](experiments/2026-09-21-grok-omnigent-fifth-head.md).
+- Official documentation for OmniGent's built-in [`grok` harness](https://omnigent.ai/docs/build/harnesses/configuration) and [xAI Grok Build](https://docs.x.ai/build/overview).
+
+Remaining work:
+
+1. Install and authenticate the Grok CLI in the WSL environment where OmniGent runs.
+2. Record the exact Grok Build model selected by the account at test time.
+3. Complete standalone and OmniGent smoke tests.
+4. Run the incremental four-head-versus-five-head comparison after the preregistered four-head baseline.
+5. Reconcile the purchase evidence privately and publish only the aggregate amount.
+6. Make and document a keep, revise, or cancel decision before the next billing period.
+
 ## Evidence policy
 
 - Do not publish claims stronger than the available evidence.

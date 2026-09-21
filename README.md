@@ -18,6 +18,7 @@ This is personal fundraising—not a charity, investment, paid endorsement, or p
 | 2026-09-21 | Current AI cost sources documented | [`data/monthly-cost-baseline.csv`](data/monthly-cost-baseline.csv) |
 | 2026-09-21 | Benchmark pass/fail gates and unified safety baseline preregistered | [`evaluation/omnigent-benchmark-v1.md`](evaluation/omnigent-benchmark-v1.md) |
 | 2026-09-21 | One available Codex usage reset consumed while continuing the accountability work | User-reported noncash event in [`data/resource-consumption.csv`](data/resource-consumption.csv) |
+| 2026-09-21 | $30 SuperGrok subscription purchased for a controlled OmniGent fifth-head evaluation | [`experiments/2026-09-21-grok-omnigent-fifth-head.md`](experiments/2026-09-21-grok-omnigent-fifth-head.md) and [`data/learning-expenses.csv`](data/learning-expenses.csv) |
 | Pending | First Claude certification metadata | Exact credential title, issuer, date, and public verification link still to be recorded |
 
 ## What this repository proves
@@ -36,7 +37,9 @@ This is personal fundraising—not a charity, investment, paid endorsement, or p
 - [`reports/`](reports/) — dated, sanitized test and progress reports.
 - [`data/funding-ledger.csv`](data/funding-ledger.csv) — public aggregate funding ledger; no private financial data.
 - [`data/monthly-cost-baseline.csv`](data/monthly-cost-baseline.csv) — recurring and usage-based AI cost sources, with monthly amounts added after reconciliation.
+- [`data/learning-expenses.csv`](data/learning-expenses.csv) — human-authorized learning purchases linked to a defined experiment and reconciliation status.
 - [`data/resource-consumption.csv`](data/resource-consumption.csv) — noncash capacity events such as usage-reset credits; no dollar value is inferred.
+- [`experiments/`](experiments/) — approved experiment cards connecting learning spend to questions, gates, deliverables, and decisions.
 - [`data/security-control-rubric.csv`](data/security-control-rubric.csv) — weighted controls used to score safety coverage and disagreement.
 - [`data/kpi-scorecard.csv`](data/kpi-scorecard.csv) — milestone and KPI status.
 - [`templates/experiment-card.md`](templates/experiment-card.md) — required before learning-related spending.

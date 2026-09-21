@@ -3,3 +3,4 @@ C-001,Unity gateway / Qwen,Usage-based,Unity gateway,OmniGent Qwen head,,Pending
 C-002,Google Cloud / Gemini,Usage-based,Google Cloud,OmniGent Pi head,,Pending reconciliation,Record the exact Gemini model and usage period in each monthly report
 C-003,Claude subscription,Fixed subscription,Anthropic,Claude learning and OmniGent head,,Pending reconciliation,Paid subscription
 C-004,Codex subscription,Fixed subscription,OpenAI,Codex learning and development tooling,,Pending reconciliation,Paid subscription
+C-005,SuperGrok subscription,Fixed subscription,xAI,Grok Build and OmniGent fifth-head research,30.00,User-reported purchase; reconciliation pending,Initial month purchased 2026-09-21; continuation requires experiment decision

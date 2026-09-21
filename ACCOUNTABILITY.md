@@ -74,14 +74,17 @@ Combine the learning into a reusable, documented AI-agent implementation:
 
 ### Cost baseline
 
-Current AI learning costs come from four sources:
+Current AI learning costs come from five sources:
 
 - Usage-based OmniGent Qwen runs through the Unity gateway.
 - Usage-based Google Cloud charges for the Pi head, backed by a Gemini model.
 - A paid Claude subscription.
 - A paid Codex subscription.
+- A $30/month SuperGrok subscription purchased September 21, 2026, for a controlled Grok Build evaluation as a potential fifth OmniGent head.
 
 Monthly reporting separates fixed subscriptions from metered run costs. Reports record the exact model/version used rather than relying on the changing label “latest,” and publish aggregate totals without exposing account, billing, or credential data.
+
+The first SuperGrok month is capped at $30. No separate metered xAI API spending is authorized under this experiment. The four-head benchmark remains unchanged to preserve its preregistered baseline; Grok is evaluated afterward as an incremental fifth-head comparison. Continuation beyond the initial month requires an evidence-based keep, revise, or cancel decision.
 
 Scarce noncash capacity—such as a redeemed Codex usage-reset credit—is tracked separately from monetary spending. A reset demonstrates resource consumption but is not assigned a dollar cost unless an authoritative billing source provides one.
 

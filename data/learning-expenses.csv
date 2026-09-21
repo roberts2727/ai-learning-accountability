@@ -1,0 +1,2 @@
+date,expense_id,vendor,item,amount_usd,category,funding_allocation,experiment,evidence,status
+2026-09-21,X-001,xAI,SuperGrok subscription,30.00,Learning,Pending reconciliation,EX-001 Grok OmniGent fifth-head evaluation,experiments/2026-09-21-grok-omnigent-fifth-head.md,Purchase reported by Robert; private receipt or statement reconciliation pending
