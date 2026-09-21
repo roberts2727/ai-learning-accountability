@@ -1,8 +1,7 @@
 measure,target,current,status,evidence,next_action,due_date
-Four-head OmniGent smoke tests,1,1,Green,reports/2026-09-21-omnigent-four-head-smoke-test.md,Design 20-prompt benchmark rubric,2026-09-25
+Four-head OmniGent smoke tests,1,1,Green,reports/2026-09-21-omnigent-four-head-smoke-test.md,Execute preregistered 20-prompt benchmark,2026-10-20
 Claude credential metadata captured,1,0,Yellow,EVIDENCE.md#e-002--first-claude-certification,Record title issuer date and public URL,2026-09-25
 Focused learning hours,72,0,Green,Weekly learning log,Begin weekly tracking,2026-12-20
 Completed learning modules,6,1,Yellow,Claude credential pending verification,Capture credential and complete five additional modules,2026-12-20
 Working AI/cloud prototypes,3,0,Green,ACCOUNTABILITY.md,Complete Milestone 1 benchmark,2026-12-20
 Public progress reports,3,0,Green,templates/monthly-update.md,Publish first report,2026-10-20
-

@@ -40,9 +40,11 @@ Turn the existing Claude/GPT/Pi/Qwen `debby-quad` work into a repeatable, measur
 - Run a 20-prompt test spanning analysis, planning, troubleshooting, and synthesis.
 - Compare a single-head baseline with four-head results.
 - Measure completion rate, latency, reported cost, evidence quality, actionability, factual support, and reviewer preference.
+- Apply preregistered hard gates and value gates before calling the workflow validated.
+- Score security-control coverage, pairwise model divergence, repeated-run stability, and critical omissions using the published rubric.
 - Publish a sanitized architecture diagram, rubric, transcript excerpts, and lessons learned.
 
-The initial 4/4 smoke test is complete and establishes the baseline.
+The initial 4/4 smoke test is complete and establishes the operational baseline. The evaluation protocol is preregistered in [`evaluation/omnigent-benchmark-v1.md`](evaluation/omnigent-benchmark-v1.md); a completed run, not the smoke test alone, determines validation.
 
 ## Milestone 2 — Governed cloud prototype
 

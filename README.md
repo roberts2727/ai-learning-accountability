@@ -16,6 +16,7 @@ This is personal fundraising—not a charity, investment, paid endorsement, or p
 | 2026-09-21 | First $5 donation, attributed publicly to The Colony | Aggregate entry in [`data/funding-ledger.csv`](data/funding-ledger.csv) |
 | 2026-09-21 | OmniGent four-head smoke test passed with Claude, GPT, Pi, and Qwen | [`reports/2026-09-21-omnigent-four-head-smoke-test.md`](reports/2026-09-21-omnigent-four-head-smoke-test.md) |
 | 2026-09-21 | Current AI cost sources documented | [`data/monthly-cost-baseline.csv`](data/monthly-cost-baseline.csv) |
+| 2026-09-21 | Benchmark pass/fail gates and unified safety baseline preregistered | [`evaluation/omnigent-benchmark-v1.md`](evaluation/omnigent-benchmark-v1.md) |
 | Pending | First Claude certification metadata | Exact credential title, issuer, date, and public verification link still to be recorded |
 
 ## What this repository proves
@@ -30,9 +31,11 @@ This is personal fundraising—not a charity, investment, paid endorsement, or p
 
 - [`ACCOUNTABILITY.md`](ACCOUNTABILITY.md) — goals, milestones, controls, cadence, and responsibilities.
 - [`EVIDENCE.md`](EVIDENCE.md) — evidence register and verification policy.
+- [`evaluation/omnigent-benchmark-v1.md`](evaluation/omnigent-benchmark-v1.md) — preregistered comparison, validation thresholds, and security-divergence method.
 - [`reports/`](reports/) — dated, sanitized test and progress reports.
 - [`data/funding-ledger.csv`](data/funding-ledger.csv) — public aggregate funding ledger; no private financial data.
 - [`data/monthly-cost-baseline.csv`](data/monthly-cost-baseline.csv) — recurring and usage-based AI cost sources, with monthly amounts added after reconciliation.
+- [`data/security-control-rubric.csv`](data/security-control-rubric.csv) — weighted controls used to score safety coverage and disagreement.
 - [`data/kpi-scorecard.csv`](data/kpi-scorecard.csv) — milestone and KPI status.
 - [`templates/experiment-card.md`](templates/experiment-card.md) — required before learning-related spending.
 - [`templates/monthly-update.md`](templates/monthly-update.md) — public reporting template.

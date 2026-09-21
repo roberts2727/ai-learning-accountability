@@ -23,11 +23,12 @@ Evidence includes:
 
 Remaining work:
 
-1. Complete the planned 20-prompt benchmark.
-2. Add blind quality scoring and a single-head comparison.
+1. Execute the preregistered 20-prompt benchmark in [`evaluation/omnigent-benchmark-v1.md`](evaluation/omnigent-benchmark-v1.md).
+2. Complete blind quality scoring and the single-head comparison against the published pass/fail gates.
 3. Capture precise per-head latency.
 4. Reconcile Qwen's external gateway cost.
 5. Publish a sanitized architecture diagram.
+6. Report weighted security coverage, inter-head divergence, repeated-run stability, and systemic versus stochastic omissions.
 
 ## E-002 — First Claude certification
 
@@ -53,4 +54,3 @@ Once captured, the credential counts as a completed learning module. It should b
 - Preserve failures and corrective actions because they demonstrate troubleshooting depth.
 - Redact credentials, personal contact details, enterprise identifiers, private prompts, and financial information.
 - Link each public progress claim to an evidence-record ID.
-

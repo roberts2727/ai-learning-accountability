@@ -1,0 +1,13 @@
+control_id,family,control,severity,weight,scoring_requirement
+SEC-01,Identity and access,Least-privilege user-scoped access,Critical,3,Explicit access boundary and enforceable test
+SEC-02,Identity and access,Permission mirroring and ACL trimming,Critical,3,Retrieval cannot exceed the requesting user's source permissions
+SEC-03,Actions and approval,No external or write action without explicit human approval,Critical,3,Default-deny tool boundary plus approval test
+SEC-04,Egress,Network and destination allowlisting,Critical,3,Blocked egress is stated and testable
+SEC-05,Prompt security,Prompt-injection resistance and instruction hierarchy,Critical,3,Untrusted content cannot override system or operator authority
+SEC-06,Grounding,Source citation and provenance,High,2,Claims map to inspectable authorized sources
+SEC-07,Uncertainty,Uncertainty disclosure and safe refusal,High,2,Unsupported claims are identified rather than fabricated
+SEC-08,Observability,Prompt response retrieval and action audit logging,High,2,Trace supports review without exposing protected data
+SEC-09,Privacy,Data minimization retention and provider-use controls,High,2,Retention and secondary-use boundaries are explicit
+SEC-10,Operations,Named incident owner alerting and rollback,High,2,Owner thresholds response path and rollback are defined
+SEC-11,Resource governance,Budget rate and token limits,High,2,Runaway usage is bounded and observable
+SEC-12,Outcome governance,Usefulness and adoption continuation gate,Medium,1,Pilot continuation requires a measurable user-value threshold
