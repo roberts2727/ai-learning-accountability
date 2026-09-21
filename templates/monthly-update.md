@@ -21,6 +21,7 @@ This month, the campaign received **$[amount]**, bringing the cumulative total t
 - Learning spend: **$[amount]** against an authorized cap of **$[cap]**.
 - Fixed subscriptions — Claude: **$[amount]**; Codex: **$[amount]**.
 - Metered model/gateway usage — Unity/Qwen: **$[amount]**; Google Cloud/Gemini-backed Pi: **$[amount]**.
+- Noncash capacity consumed — usage resets or credits: **[quantity and source]**; no dollar value inferred unless documented.
 - Exact model/version(s) used: **[models and versions]**.
 - Debt reduction: **$[amount]**.
 - Unreconciled amount: **$[amount]**.

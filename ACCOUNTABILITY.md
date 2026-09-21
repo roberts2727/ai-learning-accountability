@@ -83,6 +83,8 @@ Current AI learning costs come from four sources:
 
 Monthly reporting separates fixed subscriptions from metered run costs. Reports record the exact model/version used rather than relying on the changing label “latest,” and publish aggregate totals without exposing account, billing, or credential data.
 
+Scarce noncash capacity—such as a redeemed Codex usage-reset credit—is tracked separately from monetary spending. A reset demonstrates resource consumption but is not assigned a dollar cost unless an authoritative billing source provides one.
+
 ### Weekly review
 
 - Record learning time and completed modules.
