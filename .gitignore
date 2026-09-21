@@ -1,0 +1,10 @@
+# Never commit credentials, raw private transcripts, or financial records.
+*.dpapi
+*.jsonl
+.env
+.env.*
+secrets/
+private/
+receipts/
+banking/
+
