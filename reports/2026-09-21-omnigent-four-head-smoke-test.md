@@ -78,7 +78,7 @@ OmniGent reported **$0.53123885** in session cost:
 | Gemini 3.7 Flash | $0.01080375 |
 | **Reported total** | **$0.53123885** |
 
-The Qwen Databricks-backed call was not separately itemized. External gateway billing must be checked before the reported total is treated as the complete all-in cost.
+The Qwen call routed through the Unity gateway and was not separately itemized in the OmniGent session total. Unity billing must be reconciled before the reported total is treated as the complete all-in cost.
 
 ## Success criteria
 
@@ -99,4 +99,3 @@ The Qwen Databricks-backed call was not separately itemized. External gateway bi
 - Individual head latency was not captured precisely.
 - Qwen cost was not separately itemized.
 - The synthetic scenario did not validate proprietary-data handling.
-

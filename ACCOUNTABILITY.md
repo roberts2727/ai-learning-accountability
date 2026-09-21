@@ -70,6 +70,17 @@ Combine the learning into a reusable, documented AI-agent implementation:
 
 ## Operating cadence
 
+### Cost baseline
+
+Current AI learning costs come from four sources:
+
+- Usage-based OmniGent Qwen runs through the Unity gateway.
+- Usage-based Google Cloud charges for the Pi head, backed by a Gemini model.
+- A paid Claude subscription.
+- A paid Codex subscription.
+
+Monthly reporting separates fixed subscriptions from metered run costs. Reports record the exact model/version used rather than relying on the changing label “latest,” and publish aggregate totals without exposing account, billing, or credential data.
+
 ### Weekly review
 
 - Record learning time and completed modules.
@@ -87,8 +98,9 @@ Reports are due **October 20, November 20, and December 20** and include:
 3. Deliverables completed, with safe evidence links.
 4. KPI results versus target.
 5. Spending versus authorized caps.
-6. Failures, changes, and unresolved risks.
-7. The next milestone and due date.
+6. Fixed subscription costs versus metered gateway/cloud costs.
+7. Failures, changes, and unresolved risks.
+8. The next milestone and due date.
 
 ### Status definitions
 
@@ -112,4 +124,3 @@ If a milestone turns Red, publish an honest update within seven days, name the r
 - Checks that claimed outcomes have evidence.
 - Flags missed dates, unsupported claims, cost overruns, and allocation drift.
 - Never spends funds, handles transfer credentials, or publishes without Robert's approval.
-
