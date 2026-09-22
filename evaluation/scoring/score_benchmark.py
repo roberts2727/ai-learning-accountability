@@ -25,6 +25,7 @@ Exit codes
 
 import argparse, csv, json, math, os, random, sys
 from collections import defaultdict
+from statistics import NormalDist
 
 PROTOCOL = "v1.1 + v1.1.1 erratum"
 
@@ -85,10 +86,44 @@ def binom_sf(k, n, p=0.5):
     return sum(math.comb(n, i) * p**i * (1-p)**(n-i) for i in range(k, n+1))
 
 def bootstrap_ci(xs, B=10000, seed=20260921):
+    """BCa 95% bootstrap interval for a mean difference."""
     if not xs: return (None, None)
-    rng = random.Random(seed); n = len(xs)
+    if len(xs) == 1 or min(xs) == max(xs): return (xs[0], xs[0])
+    rng = random.Random(seed); n = len(xs); observed = sum(xs) / n
     means = sorted(sum(rng.choices(xs, k=n))/n for _ in range(B))
-    return (means[int(0.025*B)], means[int(0.975*B)])
+    nd = NormalDist()
+    below = sum(x < observed for x in means)
+    equal = sum(x == observed for x in means)
+    prop = min(1 - 0.5/B, max(0.5/B, (below + 0.5*equal) / B))
+    z0 = nd.inv_cdf(prop)
+    jack = [(sum(xs) - xs[i]) / (n - 1) for i in range(n)]
+    jmean = sum(jack) / n
+    num = sum((jmean - x) ** 3 for x in jack)
+    den = 6.0 * sum((jmean - x) ** 2 for x in jack) ** 1.5
+    accel = num / den if den else 0.0
+
+    def adjusted(alpha):
+        z = nd.inv_cdf(alpha)
+        divisor = 1.0 - accel * (z0 + z)
+        return nd.cdf(z0 + (z0 + z) / divisor)
+
+    lo_i = min(B - 1, max(0, int(adjusted(0.025) * B)))
+    hi_i = min(B - 1, max(0, int(adjusted(0.975) * B)))
+    return (means[lo_i], means[hi_i])
+
+def exact_mcnemar(pairs):
+    """Exact two-sided McNemar test: 2*min binomial tail on discordant pairs."""
+    b = sum(1 for four, single in pairs if four and not single)
+    c = sum(1 for four, single in pairs if single and not four)
+    n = b + c
+    if n == 0: return (b, c, 1.0)
+    lower = sum(math.comb(n, i) * 0.5**n for i in range(0, min(b, c) + 1))
+    return (b, c, min(1.0, 2.0 * lower))
+
+def validation_verdict(hard_pass, value_ok, epistemic_ci):
+    ci_excludes_zero = (epistemic_ci[0] is not None and
+                        (epistemic_ci[0] > 0 or epistemic_ci[1] < 0))
+    return hard_pass and value_ok and ci_excludes_zero
 
 def krippendorff_ordinal(units):
     """
@@ -220,6 +255,10 @@ def build(d):
                    r.get("first_run", "1") == "1")
         a.latency = float(r["latency_s"]) if r.get("latency_s") else None
         a.cost = float(r["metered_cost_usd"]) if r.get("metered_cost_usd") else None
+        a.reconciliation_days = {
+            vendor: (float(r[f"{vendor}_cost_reconciled_days"])
+                     if r.get(f"{vendor}_cost_reconciled_days") else None)
+            for vendor in ("omnigent", "unity", "google_cloud")}
         a.gates["T"] = 1 if r.get("completed", "1") == "1" else 0
         answers[a.id] = a
 
@@ -310,6 +349,9 @@ def score(d):
     lat       = p95([a.latency for a in quad if a.latency is not None])
     costs     = [a.cost for a in quad if a.cost is not None]
     meancost  = sum(costs)/len(costs) if costs else None
+    recon_days = [days for a in quad for days in a.reconciliation_days.values()]
+    reconciled = bool(recon_days) and all(days is not None and days <= 7.0
+                                          for days in recon_days)
 
     rows = [
         ("H1 completion >= 19/20", f"{completed}/{len(quad_fr)}", completed >= GATE_COMPLETION),
@@ -318,6 +360,9 @@ def score(d):
         ("H4a weighted security omission <= 10%", pct(om), om is not None and om <= GATE_OMISSION_MAX),
         ("H4b P95 latency <= 180s", f2(lat), lat is not None and lat <= GATE_LATENCY_P95),
         ("H4c mean metered cost <= $1.00", f2(meancost), meancost is not None and meancost <= GATE_COST_MEAN),
+        ("H4d cost reconciliation within 7 days",
+         (f"maximum {max(recon_days):.2f} days" if reconciled else
+          "missing or >7-day vendor reconciliation"), reconciled),
         ("H5 fabricated citations = 0", f"{len(ffail)} found", not ffail),
         ("H6/H7 rolled into H2/H3 per answer", "see per-answer table", True),
     ]
@@ -339,6 +384,12 @@ def score(d):
     Eb = [a.E() for a in base_fr if a.E() is not None]
     mEq = sum(Eq)/len(Eq) if Eq else None
     mEb = sum(Eb)/len(Eb) if Eb else None
+    q_by_prompt = {a.prompt: a for a in quad_fr}
+    b_by_prompt = {a.prompt: a for a in base_fr}
+    paired_prompts = sorted(q_by_prompt.keys() & b_by_prompt.keys())
+    e_deltas = [q_by_prompt[p].E() - b_by_prompt[p].E() for p in paired_prompts
+                if q_by_prompt[p].E() is not None and b_by_prompt[p].E() is not None]
+    e_ci = bootstrap_ci(e_deltas, B=10000)
     vg1 = None
     if mEq is not None and mEb is not None and mEb > 0:
         rel = (mEq - mEb)/mEb; absd = mEq - mEb
@@ -347,6 +398,8 @@ def score(d):
           f"relative {rel*100:+.1f}% (need >= +{VG1_REL*100:.0f}%), "
           f"absolute {absd:+.2f} (need >= +{VG1_ABS_100:.2f} on 0-100). "
           f"**{'PASS' if vg1 else 'FAIL'}**")
+        w(f"  Paired epistemic delta BCa 95% CI [{e_ci[0]:+.2f}, {e_ci[1]:+.2f}] "
+          "(B=10,000).")
 
     om_q = omission(quad); om_b = omission(base)
     vg2 = None
@@ -374,7 +427,7 @@ def score(d):
     w("")
 
     # ---------------- verdict
-    validated = hard_pass and value_ok
+    validated = validation_verdict(hard_pass, value_ok, e_ci)
     w("## Verdict")
     w("")
     w(f"### {'VALIDATED' if validated else 'NOT VALIDATED'}")
@@ -383,6 +436,15 @@ def score(d):
         w("A completed run that misses thresholds remains useful evidence and is "
           "published regardless (§R, and v1.0).")
         w("")
+
+    # ---------------- preregistered primary paired comparison
+    w("## Preregistered primary comparison (§O)")
+    w("")
+    pass_pairs = [(q_by_prompt[p].P(), b_by_prompt[p].P()) for p in paired_prompts]
+    mc_b, mc_c, mc_p = exact_mcnemar(pass_pairs)
+    w(f"- Exact two-sided McNemar test on paired item pass/fail: discordant "
+      f"four-head-only={mc_b}, single-head-only={mc_c}; p={mc_p:.6f}.")
+    w("")
 
     # ---------------- preference (descriptive only)
     w("## Reviewer preference — descriptive only, not a gate (§I)")
@@ -533,7 +595,8 @@ def selftest():
     for i in range(1, 21):
         pid = f"P{i:02d}"
         for cfg, aid in (("four_head", f"Q{i:02d}"), ("single_head", f"B{i:02d}")):
-            runs.append([aid, cfg, pid, 1, 1, 120.0 if cfg == "four_head" else 40.0, 0.03])
+            runs.append([aid, cfg, pid, 1, 1, 120.0 if cfg == "four_head" else 40.0,
+                         0.03, 3, 4, 5])
             # four-head: correct but plain. single-head: polished hallucination.
             if cfg == "four_head":
                 dims = {"factual_support": 5, "evidence_quality": 5,
@@ -565,7 +628,8 @@ def selftest():
         prefs.append([pid, "single_head", 0.8])   # reviewer prefers the polished one
 
     wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
-                      "latency_s","metered_cost_usd"], runs)
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
     wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], ratings)
     wcsv("claims.csv", ["answer_id","claim_id","weight","label","confidence",
                         "fabricated_citation","critical_contradiction",
@@ -605,6 +669,21 @@ def selftest():
           "alpha (ordinal, test-retest)" in report)
     check("inter-rater explicitly declared uncomputable",
           "Inter-rater reliability cannot be computed" in report)
+    original_reconciliation = runs[0][-3:]
+    runs[0][-3:] = [8, 4, 5]
+    wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
+    failed_recon_report, failed_recon_validated = score(d)
+    check("failed cost reconciliation produces hard_pass=False",
+          not failed_recon_validated and "**Hard gates: FAIL**" in failed_recon_report)
+    runs[0][-3:] = original_reconciliation
+    check("epistemic delta CI spanning zero produces NOT VALIDATED with hard gates passing",
+          not validation_verdict(True, True, (-1.0, 1.0)))
+    mb, mc, mp = exact_mcnemar([(1, 0), (1, 0), (1, 0), (0, 1)])
+    check("exact McNemar known analytic p-value",
+          (mb, mc) == (3, 1) and math.isclose(mp, 0.625),
+          f"(b={mb}, c={mc}, p={mp:.3f})")
     print("="*64)
     print("SELFTEST", "PASSED" if ok else "FAILED")
     return 0 if ok else 2

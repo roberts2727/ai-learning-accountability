@@ -24,6 +24,9 @@ Verify: `python3 score_benchmark.py --selftest`
 | `first_run` | `1` \| `0` | `0` for the 2nd/3rd repeat of a security prompt. Claim verification uses `first_run=1` only (erratum E-3); repeats still feed the control rubric |
 | `latency_s` | float | end-to-end seconds, feeds H4b (P95) |
 | `metered_cost_usd` | float | metered only; subscription cost is not metered and is reported separately |
+| `omnigent_cost_reconciled_days` | non-negative float | elapsed days until OmniGent charges were reconciled; blank fails the seven-day hard gate |
+| `unity_cost_reconciled_days` | non-negative float | elapsed days until Unity charges were reconciled; blank fails the seven-day hard gate |
+| `google_cloud_cost_reconciled_days` | non-negative float | elapsed days until Google Cloud charges were reconciled; blank fails the seven-day hard gate |
 
 ## 2. ratings.csv — one row per (answer, dimension, sitting)
 
@@ -94,6 +97,14 @@ the choice is recorded here rather than made silently at scoring time.
 2. **C when no confidences are declared.** If an answer declares no per-claim
    confidences, the calibration term is undefined and the script computes
    `E = 100·S·(1−r)²` rather than imputing a value. Imputing would invent data.
+3. **Cost-reconciliation representation.** The protocol names three vendors and
+   requires their charges to be reconciled within seven days, but does not define
+   a separate run-metadata file. Their elapsed reconciliation days are therefore
+   recorded on every `runs.csv` row; every value must be present and at most 7.
+4. **McNemar item pass/fail.** Section O requires paired pass/fail per item but
+   does not define a second item-level pass variable. The script therefore pairs
+   the existing per-answer `P()` result by `prompt_id` for the exact two-sided
+   McNemar comparison. Claims are not pooled.
 
 Neither changes a threshold. Both are implementation decisions forced by the
 data format, published before any data exists.
