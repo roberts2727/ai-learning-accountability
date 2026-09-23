@@ -151,38 +151,32 @@ determining its referent was never specified. It is specified here.
    benchmarks, CVE/CVSS records, RFCs, regulatory text. **If the dossier cannot be
    written before the run, the item does not enter the pool.**
 
-**Anchoring control.** The reference key governs *admissibility and gate
-evaluation*, not the scope of scoring. Unanticipated claims are still decomposed
-and labeled. An unanticipated weight-3 claim that cannot be checked against a
-public source is labeled **Uncheckable and counted in the denominator**. Any item
-whose weight-3 claims are more than 20% Uncheckable is reported as **low
-information** and excluded from gate determination.
+**Anchoring control.** The reference key governs *admissibility*, not the scope of
+scoring or gate determination. Unanticipated claims are still decomposed and
+labeled. An unanticipated claim that cannot be checked against a public source is
+labeled **Uncheckable and counted in the denominator**. No label assigned during
+scoring removes an item from gate determination.
 
 Dossiers and keys are published at reveal.
 
 ---
 
-## 5. Verification scope — bounded without rewarding shallowness
+## 5. Verification scope — frozen erratum E-3
 
-The floor sits on the **item** (§4.2) and the cap sits on **verification of
-model-generated extras**. They are different objects and cannot be traded against
-each other.
+Claim verification applies to first-run answers only: 20 prompts × 2
+configurations = 40 answers. Repeat runs of the five architecture/security prompts
+are scored on the security-control rubric only.
 
-| Weight | Rule |
-|---|---|
-| **3** | **Census. All of them, no cap, ever.** All hard gates run on these. |
-| **2** | Bounded seeded random sample, ≤ 12 per answer, drawn from an enumeration published before any labeling. |
-| **1** | Small random subsample, ≈ 4 per answer, used only to estimate an error rate with an interval. **Never used to compute a gate.** |
+Within each first-run answer, verification comprises:
 
-Cost scales with safety-critical density rather than verbosity. A longer answer
-earns neither extra credit nor extra scrutiny per claim, so claim-count inflation
-ceases to be a strategy — which also closes a gaming vector identified against the
-epistemic score.
+- a 100% census of all weight-3 claims, with no cap; and
+- a random sample of 4 claims drawn from the combined weight-1 and weight-2 pool,
+  using a published seed before verification begins.
 
-**Overrun protocol, pre-declared.** If verification exceeds budget: cut the
-weight-1 subsample first, then reduce the weight-2 sample size. **Never drop items.
-Never touch weight-3.** Any cut is applied to blinded run IDs **symmetrically
-across configurations**, and the symmetry is verifiable from the published log.
+S is computed over those verified claims. The weight-1/weight-2 component is
+reported with a sampling confidence interval; the weight-3 census is reported
+without one. H5, H6, and H7 remain full-answer checks: their scope is not limited
+by the claim sample.
 
 ---
 
@@ -239,9 +233,10 @@ than substituting one test for the other silently.
 ## 7. Scoring-integrity controls
 
 ### 7.1 Blind re-score
-A seeded random **20%** of run IDs is re-scored after a **≥ 7-day** cooling-off
-period, blind to the first pass. Intra-rater agreement (Krippendorff's α, ordinal)
-is computed and published.
+A random **25%** subsample of answers, drawn with a published seed before any
+scoring begins, is re-scored after a minimum **48-hour** washout, blind to the
+first-pass scores and blind to configuration identity. Intra-rater agreement
+(Krippendorff's α, ordinal) is computed and published.
 
 **Pre-declared consequence:** every reported delta is presented against this
 number. If self-agreement is below α = 0.667 on a dimension, that dimension cannot

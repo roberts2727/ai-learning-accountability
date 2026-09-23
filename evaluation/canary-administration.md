@@ -83,8 +83,8 @@ applied here.
 
 Defect *classes* are committed in `canary-taxonomy.md` and hashed pre-run. The
 reviewer knows the classes. The reviewer must never know the instances.
-Classes T-01, T-04, T-05, T-06 are burned (§15). Eligible: T-02, T-03, T-07,
-T-08, T-09, T-10.
+Classes T-01, T-04, T-05, T-06 are burned (§15). Eligible: T-02, T-07, T-09,
+T-10, consistent with the completed audit recorded in `canary-spec-changelog.md`.
 
 ---
 

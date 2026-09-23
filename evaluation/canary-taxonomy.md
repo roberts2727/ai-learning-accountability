@@ -30,7 +30,7 @@ development and disclosed to the reviewer. They are published in
 `canary-exemplars.md` as part of the fairness standard and are permanently
 ineligible for this run. See `canary-administration.md` §15.
 
-**Eligible classes for this run: T-02, T-03, T-07, T-08, T-09, T-10.**
+**Eligible classes for this run: T-02, T-07, T-09, T-10.**
 
 ## Commitment
 
