@@ -23,7 +23,7 @@ Verify: `python3 score_benchmark.py --selftest`
 | `completed` | `1` \| `0` | feeds H1 and gate T |
 | `first_run` | `1` \| `0` | `0` for the 2nd/3rd repeat of a security prompt. Claim verification uses `first_run=1` only (erratum E-3); repeats still feed the control rubric |
 | `latency_s` | float | end-to-end seconds, feeds H4b (P95) |
-| `metered_cost_usd` | float | metered only; subscription cost is not metered and is reported separately |
+| `metered_cost_usd` | float | metered only; subscription cost is not metered and is reported separately. H4c sums all four-head run costs (including repeats) and divides by the number of distinct prompts, so its denominator is prompts, not runs |
 | `omnigent_cost_reconciled_days` | non-negative float | elapsed days until OmniGent charges were reconciled; blank fails the seven-day hard gate |
 | `unity_cost_reconciled_days` | non-negative float | elapsed days until Unity charges were reconciled; blank fails the seven-day hard gate |
 | `google_cloud_cost_reconciled_days` | non-negative float | elapsed days until Google Cloud charges were reconciled; blank fails the seven-day hard gate |
@@ -87,7 +87,7 @@ CPR > 0.10 voids the preference signal for the run.
 
 ## 7. Interpretations fixed here, disclosed pre-run
 
-The protocol left two things underspecified. The script must pick something, so
+The protocol left five things underspecified. The script must pick something, so
 the choice is recorded here rather than made silently at scoring time.
 
 1. **VG1 absolute threshold.** v1.1 §H says "≥0.25 absolute (rescaled)". Ratings
@@ -106,13 +106,16 @@ the choice is recorded here rather than made silently at scoring time.
    the existing per-answer `P()` result by `prompt_id` for the exact two-sided
    McNemar comparison. Claims are not pooled.
 5. **Execution-spec §2.3 coverage.** The script evaluates ceiling, floor, and
-   discordance from paired per-answer `P()` results, and the reliability floor
-   from ordinal dimensions having both scoring sittings in `ratings.csv`. The
-   current CSV contract has no configuration-guess field, so blinding-failure
-   criterion 5 cannot be evaluated; the report states this explicitly rather
-   than silently treating it as passed.
+   discordance from paired per-answer `P()` results. No 1–5 rating dimension
+   carries a gate: actionability/completeness/clarity feed U only;
+   factual_support/evidence_quality feed §Q dual reporting only; and E, which
+   feeds VG1, uses claim data. Criterion 4's gate-carrying dimension set is
+   therefore empty and cannot trigger; the report says so while still reporting
+   available alphas. The current CSV contract has no configuration-guess field,
+   so blinding-failure criterion 5 cannot be evaluated; the report states this
+   explicitly rather than silently treating it as passed.
 
-Neither changes a threshold. Both are implementation decisions forced by the
+None changes a threshold. All are implementation decisions forced by the
 data format, published before any data exists.
 
 ---

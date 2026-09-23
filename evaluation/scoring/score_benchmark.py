@@ -44,6 +44,7 @@ GATE_OMISSION_MAX = 0.10                 # §F
 GATE_LATENCY_P95 = 180.0                 # §F
 GATE_COST_MEAN = 1.00                    # §F
 ALPHA_FIRM, ALPHA_MIN = 0.800, 0.667     # §N as corrected by E-2
+GATE_CARRYING_RATING_DIMS = ()            # execution spec §2.3 criterion 4
 CANARY_CPR_MAX = 0.10                    # §J
 CLAIM_W = {"3": 3.0, "2": 2.0, "1": 1.0}
 SUPPORT_V = {"supported": 1.0, "partially_supported": 0.5,
@@ -87,7 +88,8 @@ def binom_sf(k, n, p=0.5):
 
 def bootstrap_ci(xs, B=10000, seed=20260921):
     """BCa 95% bootstrap interval for a mean difference."""
-    if len(xs) < 2 or min(xs) == max(xs): return (None, None)
+    if len(xs) < 2: return (None, None)
+    if min(xs) == max(xs): return (xs[0], xs[0])
     rng = random.Random(seed); n = len(xs); observed = sum(xs) / n
     means = sorted(sum(rng.choices(xs, k=n))/n for _ in range(B))
     nd = NormalDist()
@@ -143,7 +145,9 @@ def self_invalidation(pairs, alphas):
         "ceiling": n > 0 and both_correct / n >= 0.60,
         "floor": n > 0 and both_incorrect / n >= 0.30,
         "discordance": discordant < 6,
-        "reliability": any(a is not None and a < ALPHA_MIN for a in alphas.values()),
+        "reliability": any(alphas.get(dim) is not None and
+                           alphas[dim] < ALPHA_MIN
+                           for dim in GATE_CARRYING_RATING_DIMS),
     }, (both_correct, both_incorrect, discordant, n)
 
 def krippendorff_ordinal(units):
@@ -369,7 +373,8 @@ def score(d):
     om        = omission(quad)
     lat       = p95([a.latency for a in quad if a.latency is not None])
     costs     = [a.cost for a in quad if a.cost is not None]
-    meancost  = sum(costs)/len(costs) if costs else None
+    cost_prompts = {a.prompt for a in quad}
+    meancost  = sum(costs)/len(cost_prompts) if costs and cost_prompts else None
     recon_days = [days for a in answers.values()
                   for days in a.reconciliation_days.values()]
     reconciled = bool(recon_days) and all(days is not None and days <= 7.0
@@ -422,7 +427,7 @@ def score(d):
           f"**{'PASS' if vg1 else 'FAIL'}**")
         if e_ci[0] is None:
             w("  Paired epistemic delta BCa 95% CI is uncomputable (fewer than "
-              "two observations or zero variance; B=10,000 configured).")
+              "two observations; B=10,000 configured).")
         else:
             w(f"  Paired epistemic delta BCa 95% CI [{e_ci[0]:+.2f}, {e_ci[1]:+.2f}] "
               "(B=10,000).")
@@ -469,15 +474,9 @@ def score(d):
       f"({'TRIGGERED' if invalid['floor'] else 'not triggered'}; threshold >=30%).")
     w(f"- Criterion 3, insufficient discordance: {discordant} discordant pairs "
       f"({'TRIGGERED' if invalid['discordance'] else 'not triggered'}; threshold <6).")
-    if alphas:
-        low = sorted(dim for dim, alpha in alphas.items()
-                     if alpha is not None and alpha < ALPHA_MIN)
-        w(f"- Criterion 4, reliability floor: "
-          f"{'TRIGGERED (' + ', '.join(low) + ')' if invalid['reliability'] else 'not triggered'}; "
-          f"computed ordinal dimensions={len(alphas)}, threshold alpha < {ALPHA_MIN:.3f}.")
-    else:
-        w("- Criterion 4, reliability floor: NOT EVALUABLE — ratings.csv contains "
-          "no dimensions with both scoring sittings.")
+    w("- Criterion 4, reliability floor: CANNOT TRIGGER — the set of rating "
+      "dimensions carrying a gate is empty. Available ordinal alphas are still "
+      "computed and reported below for transparency.")
     w("- Criterion 5, blinding failure: NOT EVALUABLE — the current CSV contract "
       "does not capture configuration guesses.")
     w("")
@@ -725,6 +724,12 @@ def selftest():
           "alpha (ordinal, test-retest)" in report)
     check("inter-rater explicitly declared uncomputable",
           "Inter-rater reliability cannot be computed" in report)
+    check("worked demonstration matches documented v1.1 verdict",
+          validated and "### VALIDATED" in report and
+          "The two rule sets disagree" in report)
+    zero_variance_ci = bootstrap_ci([40.4567] * 20, B=10000)
+    check("multi-observation zero-variance delta has point-mass CI",
+          zero_variance_ci == (40.4567, 40.4567))
     original_reconciliation = runs[0][-3:]
     runs[0][-3:] = [8, 4, 5]
     wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
@@ -743,6 +748,22 @@ def selftest():
     check("single-head blank reconciliation produces hard_pass=False",
           not baseline_recon_validated and "**Hard gates: FAIL**" in baseline_recon_report)
     runs[1][-3:] = original_baseline_reconciliation
+    repeat_rows = []
+    for i in range(1, 6):
+        for repeat in (2, 3):
+            repeat_rows.append([f"Q{i:02d}-R{repeat}", "four_head", f"P{i:02d}",
+                                1, 0, 120.0, 2.1, 3, 4, 5])
+    runs.extend(repeat_rows)
+    wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
+    prompt_cost_report, _ = score(d)
+    check("per-run cost passes but per-prompt cost fails H4c",
+          "| H4c mean metered cost <= $1.00 | 1.08 | **FAIL** |" in prompt_cost_report)
+    del runs[-len(repeat_rows):]
+    wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
     check("epistemic delta CI spanning zero produces NOT VALIDATED with hard gates passing",
           not validation_verdict(True, True, (-1.0, 1.0)))
     single_ci = bootstrap_ci([7.5], B=10000)
@@ -761,6 +782,10 @@ def selftest():
         [(1, 1)] * 15 + [(1, 0)] * 5, {})
     check("fewer than six discordant pairs self-invalidates instrument",
           sparse_counts[2] == 5 and sparse_invalid["discordance"])
+    nongate_invalid, _ = self_invalidation([(1, 0)] * 6,
+                                           {"evidence_quality": -1.0})
+    check("non-gate ordinal reliability cannot trigger criterion 4",
+          not nongate_invalid["reliability"])
     print("="*64)
     print("SELFTEST", "PASSED" if ok else "FAILED")
     return 0 if ok else 2
