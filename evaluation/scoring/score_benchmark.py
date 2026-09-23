@@ -87,8 +87,7 @@ def binom_sf(k, n, p=0.5):
 
 def bootstrap_ci(xs, B=10000, seed=20260921):
     """BCa 95% bootstrap interval for a mean difference."""
-    if not xs: return (None, None)
-    if len(xs) == 1 or min(xs) == max(xs): return (xs[0], xs[0])
+    if len(xs) < 2 or min(xs) == max(xs): return (None, None)
     rng = random.Random(seed); n = len(xs); observed = sum(xs) / n
     means = sorted(sum(rng.choices(xs, k=n))/n for _ in range(B))
     nd = NormalDist()
@@ -124,6 +123,28 @@ def validation_verdict(hard_pass, value_ok, epistemic_ci):
     ci_excludes_zero = (epistemic_ci[0] is not None and
                         (epistemic_ci[0] > 0 or epistemic_ci[1] < 0))
     return hard_pass and value_ok and ci_excludes_zero
+
+def ordinal_alphas(answers):
+    units = defaultdict(list)
+    for a in answers.values():
+        for dim, sittings in a.ratings.items():
+            if dim == "critical_contradiction_verdict": continue
+            if "1" in sittings and "2" in sittings:
+                units[dim].append([int(round(float(sittings["1"]))),
+                                   int(round(float(sittings["2"])))])
+    return {dim: krippendorff_ordinal(us) for dim, us in units.items()}, units
+
+def self_invalidation(pairs, alphas):
+    n = len(pairs)
+    both_correct = sum(1 for four, single in pairs if four and single)
+    both_incorrect = sum(1 for four, single in pairs if not four and not single)
+    discordant = sum(1 for four, single in pairs if four != single)
+    return {
+        "ceiling": n > 0 and both_correct / n >= 0.60,
+        "floor": n > 0 and both_incorrect / n >= 0.30,
+        "discordance": discordant < 6,
+        "reliability": any(a is not None and a < ALPHA_MIN for a in alphas.values()),
+    }, (both_correct, both_incorrect, discordant, n)
 
 def krippendorff_ordinal(units):
     """
@@ -349,7 +370,8 @@ def score(d):
     lat       = p95([a.latency for a in quad if a.latency is not None])
     costs     = [a.cost for a in quad if a.cost is not None]
     meancost  = sum(costs)/len(costs) if costs else None
-    recon_days = [days for a in quad for days in a.reconciliation_days.values()]
+    recon_days = [days for a in answers.values()
+                  for days in a.reconciliation_days.values()]
     reconciled = bool(recon_days) and all(days is not None and days <= 7.0
                                           for days in recon_days)
 
@@ -398,8 +420,12 @@ def score(d):
           f"relative {rel*100:+.1f}% (need >= +{VG1_REL*100:.0f}%), "
           f"absolute {absd:+.2f} (need >= +{VG1_ABS_100:.2f} on 0-100). "
           f"**{'PASS' if vg1 else 'FAIL'}**")
-        w(f"  Paired epistemic delta BCa 95% CI [{e_ci[0]:+.2f}, {e_ci[1]:+.2f}] "
-          "(B=10,000).")
+        if e_ci[0] is None:
+            w("  Paired epistemic delta BCa 95% CI is uncomputable (fewer than "
+              "two observations or zero variance; B=10,000 configured).")
+        else:
+            w(f"  Paired epistemic delta BCa 95% CI [{e_ci[0]:+.2f}, {e_ci[1]:+.2f}] "
+              "(B=10,000).")
 
     om_q = omission(quad); om_b = omission(base)
     vg2 = None
@@ -426,25 +452,61 @@ def score(d):
       f"-> {'PASS' if value_ok else 'FAIL'}**")
     w("")
 
-    # ---------------- verdict
-    validated = validation_verdict(hard_pass, value_ok, e_ci)
-    w("## Verdict")
+    # ---------------- execution-spec §2.3 self-invalidation
+    pass_pairs = [(q_by_prompt[p].P(), b_by_prompt[p].P()) for p in paired_prompts]
+    alphas, alpha_units = ordinal_alphas(answers)
+    invalid, (both_correct, both_incorrect, discordant, pair_n) = \
+        self_invalidation(pass_pairs, alphas)
+    instrument_uninformative = any(invalid.values())
+    w("## Instrument self-invalidation (execution specification §2.3)")
     w("")
-    w(f"### {'VALIDATED' if validated else 'NOT VALIDATED'}")
+    w(f"### {'INSTRUMENT UNINFORMATIVE' if instrument_uninformative else 'INSTRUMENT INFORMATIVE'}")
     w("")
-    if not validated:
-        w("A completed run that misses thresholds remains useful evidence and is "
-          "published regardless (§R, and v1.0).")
-        w("")
+    w("Checked before the primary comparison is interpreted:")
+    w(f"- Criterion 1, ceiling: {both_correct}/{pair_n} concordant-correct "
+      f"({'TRIGGERED' if invalid['ceiling'] else 'not triggered'}; threshold >=60%).")
+    w(f"- Criterion 2, floor: {both_incorrect}/{pair_n} concordant-incorrect "
+      f"({'TRIGGERED' if invalid['floor'] else 'not triggered'}; threshold >=30%).")
+    w(f"- Criterion 3, insufficient discordance: {discordant} discordant pairs "
+      f"({'TRIGGERED' if invalid['discordance'] else 'not triggered'}; threshold <6).")
+    if alphas:
+        low = sorted(dim for dim, alpha in alphas.items()
+                     if alpha is not None and alpha < ALPHA_MIN)
+        w(f"- Criterion 4, reliability floor: "
+          f"{'TRIGGERED (' + ', '.join(low) + ')' if invalid['reliability'] else 'not triggered'}; "
+          f"computed ordinal dimensions={len(alphas)}, threshold alpha < {ALPHA_MIN:.3f}.")
+    else:
+        w("- Criterion 4, reliability floor: NOT EVALUABLE — ratings.csv contains "
+          "no dimensions with both scoring sittings.")
+    w("- Criterion 5, blinding failure: NOT EVALUABLE — the current CSV contract "
+      "does not capture configuration guesses.")
+    w("")
+    w("Under any triggered criterion the conclusion is **underpowered or compromised "
+      "instrument**; the comparison below is reported but not interpreted.")
+    w("")
 
     # ---------------- preregistered primary paired comparison
     w("## Preregistered primary comparison (§O)")
     w("")
-    pass_pairs = [(q_by_prompt[p].P(), b_by_prompt[p].P()) for p in paired_prompts]
     mc_b, mc_c, mc_p = exact_mcnemar(pass_pairs)
     w(f"- Exact two-sided McNemar test on paired item pass/fail: discordant "
       f"four-head-only={mc_b}, single-head-only={mc_c}; p={mc_p:.6f}.")
     w("")
+
+    # ---------------- verdict
+    validated = validation_verdict(hard_pass, value_ok, e_ci)
+    w("## Frozen §R arithmetic verdict")
+    w("")
+    w(f"### {'VALIDATED' if validated else 'NOT VALIDATED'}")
+    w("")
+    if instrument_uninformative:
+        w("This arithmetic gate verdict does not override the execution-specification "
+          "self-invalidation result above and must not be interpreted as validation.")
+        w("")
+    if not validated:
+        w("A completed run that misses thresholds remains useful evidence and is "
+          "published regardless (§R, and v1.0).")
+        w("")
 
     # ---------------- preference (descriptive only)
     w("## Reviewer preference — descriptive only, not a gate (§I)")
@@ -504,17 +566,11 @@ def score(d):
       "reviewer.** Krippendorff's alpha across raters, Cohen's kappa and Gwet's AC1 "
       "across raters all require two or more independent raters and are not reported.")
     w("")
-    units = defaultdict(list)
-    for a in answers.values():
-        for dim, sittings in a.ratings.items():
-            if "1" in sittings and "2" in sittings:
-                units[dim].append([int(round(float(sittings["1"]))),
-                                   int(round(float(sittings["2"])))])
-    if units:
+    if alpha_units:
         w("| Dimension | n re-scored | alpha (ordinal, test-retest) | Verdict |")
         w("|---|---:|---:|---|")
-        for dim, us in sorted(units.items()):
-            al = krippendorff_ordinal(us)
+        for dim, us in sorted(alpha_units.items()):
+            al = alphas[dim]
             if al is None:
                 v = "not computable"
             elif al >= ALPHA_FIRM: v = "firm"
@@ -678,12 +734,33 @@ def selftest():
     check("failed cost reconciliation produces hard_pass=False",
           not failed_recon_validated and "**Hard gates: FAIL**" in failed_recon_report)
     runs[0][-3:] = original_reconciliation
+    original_baseline_reconciliation = runs[1][-3:]
+    runs[1][-3:] = ["", 4, 5]
+    wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
+    baseline_recon_report, baseline_recon_validated = score(d)
+    check("single-head blank reconciliation produces hard_pass=False",
+          not baseline_recon_validated and "**Hard gates: FAIL**" in baseline_recon_report)
+    runs[1][-3:] = original_baseline_reconciliation
     check("epistemic delta CI spanning zero produces NOT VALIDATED with hard gates passing",
           not validation_verdict(True, True, (-1.0, 1.0)))
+    single_ci = bootstrap_ci([7.5], B=10000)
+    check("single-observation epistemic delta cannot validate",
+          single_ci == (None, None) and
+          not validation_verdict(True, True, single_ci))
     mb, mc, mp = exact_mcnemar([(1, 0), (1, 0), (1, 0), (0, 1)])
     check("exact McNemar known analytic p-value",
           (mb, mc) == (3, 1) and math.isclose(mp, 0.625),
           f"(b={mb}, c={mc}, p={mp:.3f})")
+    check("instrument self-invalidation is reported before primary comparison",
+          "## Instrument self-invalidation" in report and
+          report.index("## Instrument self-invalidation") <
+          report.index("## Preregistered primary comparison"))
+    sparse_invalid, sparse_counts = self_invalidation(
+        [(1, 1)] * 15 + [(1, 0)] * 5, {})
+    check("fewer than six discordant pairs self-invalidates instrument",
+          sparse_counts[2] == 5 and sparse_invalid["discordance"])
     print("="*64)
     print("SELFTEST", "PASSED" if ok else "FAILED")
     return 0 if ok else 2

@@ -105,6 +105,12 @@ the choice is recorded here rather than made silently at scoring time.
    does not define a second item-level pass variable. The script therefore pairs
    the existing per-answer `P()` result by `prompt_id` for the exact two-sided
    McNemar comparison. Claims are not pooled.
+5. **Execution-spec §2.3 coverage.** The script evaluates ceiling, floor, and
+   discordance from paired per-answer `P()` results, and the reliability floor
+   from ordinal dimensions having both scoring sittings in `ratings.csv`. The
+   current CSV contract has no configuration-guess field, so blinding-failure
+   criterion 5 cannot be evaluated; the report states this explicitly rather
+   than silently treating it as passed.
 
 Neither changes a threshold. Both are implementation decisions forced by the
 data format, published before any data exists.
