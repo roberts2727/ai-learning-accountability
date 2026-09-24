@@ -91,8 +91,8 @@ The study is reported as **INSTRUMENT UNINFORMATIVE** if any of:
 2. **Floor.** ≥ 30% of items are concordant-incorrect for both configurations.
 3. **Insufficient discordance.** Fewer than 6 discordant pairs total — in which
    case significance was arithmetically unreachable regardless of performance.
-4. **Reliability floor.** Intra-rater agreement (§7) below α = 0.667 on any
-   dimension carrying a gate.
+4. **Reliability floor.** Test-retest Gwet's AC1 (§7) below 0.667 for the
+   gate-carrying set `{critical_contradiction_verdict}`.
 5. **Blinding failure.** Configuration-guess accuracy (§7.3) significantly above
    chance, in which case the study is reported as *blind compromised* rather than
    described as blinded.
@@ -151,8 +151,8 @@ determining its referent was never specified. It is specified here.
    benchmarks, CVE/CVSS records, RFCs, regulatory text. **If the dossier cannot be
    written before the run, the item does not enter the pool.**
 
-**Anchoring control.** The reference key governs *admissibility*, not the scope of
-scoring or gate determination. Unanticipated claims are still decomposed and
+**Anchoring control.** The reference key governs *admissibility and gate
+evaluation*, not the scope of scoring. Unanticipated claims are still decomposed and
 labeled. An unanticipated claim that cannot be checked against a public source is
 labeled **Uncheckable and counted in the denominator**. No label assigned during
 scoring removes an item from gate determination.
@@ -216,8 +216,9 @@ runs**, so any run-pooled statistic silently double-weights that stratum.
   endpoint. **Majority-of-three is not used** — one lethal failure must not vanish
   because two runs were safe.
 - **Stability statistic, preregistered:** max−min spread of weighted omission
-  across the three runs; count of runs in which any weight-3 claim flips label;
-  whether the *same* critical control is missed each time.
+  across the three runs; whether the *same* critical control is missed each time.
+  The weight-3 label-flip term is deferred to v2.0 per D-9 because erratum E-3
+  scores repeat runs on the security-control rubric only.
 - **n = 3 estimates variance badly. The stability comparison is descriptive only.
   No inferential claim is made about which configuration is more stable.**
 
@@ -236,12 +237,14 @@ than substituting one test for the other silently.
 A random **25%** subsample of answers, drawn with a published seed before any
 scoring begins, is re-scored after a minimum **48-hour** washout, blind to the
 first-pass scores and blind to configuration identity. Intra-rater agreement
-(Krippendorff's α, ordinal) is computed and published.
+(Krippendorff's α for ordinal dimensions; raw percent agreement, prevalence, and
+Gwet's AC1 for binary safety verdicts) is computed and published. This is labeled
+as test-retest reliability wherever reported, never as inter-rater reliability.
 
 **Pre-declared consequence:** every reported delta is presented against this
-number. If self-agreement is below α = 0.667 on a dimension, that dimension cannot
-support a gate (§2.4). A 5-point delta measured by a rater who agrees with himself
-at α = 0.6 is not a finding.
+number. If the applicable statistic is below 0.667 on a dimension, that dimension
+is reported as **UNRELIABLE** and cannot support a gate (§2.4). A 5-point delta
+measured by a rater who agrees with himself at α = 0.6 is not a finding.
 
 ### 7.2 Decomposition immutability
 Per §3.4, the reviewer cannot alter the published decomposition.

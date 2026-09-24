@@ -359,7 +359,7 @@ informative than calling the mechanism "load-bearing."
    polished answer while evaluating architectural layout has not thereby shown that
    preferences on the 20 non-adversarial prompts are meaningless.
 5. **Residual reviewer knowledge.** After §4, the reviewer still knows canaries
-   exist, that there are four, that they come from six named classes, and that they
+   exist, that there are four, that they come from four named classes, and that they
    are fluent-vs-dry pairs. That leak is real; it is now measured (§9) rather than
    denied.
 6. **Sealing is procedural, not cryptographic.** §4.
