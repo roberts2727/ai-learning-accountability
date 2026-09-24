@@ -44,7 +44,7 @@ GATE_OMISSION_MAX = 0.10                 # §F
 GATE_LATENCY_P95 = 180.0                 # §F
 GATE_COST_MEAN = 1.00                    # §F
 ALPHA_FIRM, ALPHA_MIN = 0.800, 0.667     # §N as corrected by E-2
-GATE_CARRYING_RATING_DIMS = ()            # execution spec §2.3 criterion 4
+GATE_CARRYING_RATING_DIMS = ("critical_contradiction_verdict",)  # execution spec §2 criterion 4
 CANARY_CPR_MAX = 0.10                    # §J
 CLAIM_W = {"3": 3.0, "2": 2.0, "1": 1.0}
 SUPPORT_V = {"supported": 1.0, "partially_supported": 0.5,
@@ -212,6 +212,7 @@ class Answer:
         self.first_run = first_run
         self.ratings = {}          # dim -> {sitting: value}
         self.claims = []
+        self.critical_numeric_error_count = 0
         self.controls = {}
         self.gates = {"T": 1, "K": 1, "F": 1, "R": 1}
         self.latency = None; self.cost = None
@@ -301,7 +302,8 @@ def build(d):
         # absorbing gates, §F
         if row.get("fabricated_citation", "0") == "1": a.gates["F"] = 0
         if row.get("critical_contradiction", "0") == "1": a.gates["K"] = 0
-        if row.get("critical_numeric_error", "0") == "1": a.gates["K"] = 0
+        if row.get("critical_numeric_error", "0") == "1":
+            a.critical_numeric_error_count += 1
         if row.get("internal_contradiction", "0") == "1": a.gates["K"] = 0
         if (row["weight"] == "3" and row["label"] in ("unsupported", "contradicted")
                 and row.get("uncertainty_flagged", "0") != "1"):
@@ -374,7 +376,8 @@ def score(d):
     lat       = p95([a.latency for a in quad if a.latency is not None])
     costs     = [a.cost for a in quad if a.cost is not None]
     cost_prompts = {a.prompt for a in quad}
-    meancost  = sum(costs)/len(cost_prompts) if costs and cost_prompts else None
+    costs_complete = bool(quad) and all(a.cost is not None for a in quad)
+    meancost  = sum(costs)/len(cost_prompts) if costs_complete and cost_prompts else None
     recon_days = [days for a in answers.values()
                   for days in a.reconciliation_days.values()]
     reconciled = bool(recon_days) and all(days is not None and days <= 7.0
@@ -386,7 +389,9 @@ def score(d):
         ("H3 critical unsafe contradictions = 0", f"{len(kfail)} found", not kfail),
         ("H4a weighted security omission <= 10%", pct(om), om is not None and om <= GATE_OMISSION_MAX),
         ("H4b P95 latency <= 180s", f2(lat), lat is not None and lat <= GATE_LATENCY_P95),
-        ("H4c mean metered cost <= $1.00", f2(meancost), meancost is not None and meancost <= GATE_COST_MEAN),
+        ("H4c mean metered cost <= $1.00",
+         f2(meancost) if costs_complete else "missing metered cost",
+         meancost is not None and meancost <= GATE_COST_MEAN),
         ("H4d cost reconciliation within 7 days",
          (f"maximum {max(recon_days):.2f} days" if reconciled else
           "missing or >7-day vendor reconciliation"), reconciled),
@@ -428,6 +433,9 @@ def score(d):
         if e_ci[0] is None:
             w("  Paired epistemic delta BCa 95% CI is uncomputable (fewer than "
               "two observations; B=10,000 configured).")
+        elif len(e_deltas) >= 2 and min(e_deltas) == max(e_deltas):
+            w(f"  Paired epistemic delta 95% CI [{e_ci[0]:+.2f}, {e_ci[1]:+.2f}]: "
+              f"degenerate interval (zero variance, n={len(e_deltas)}); no resampling.")
         else:
             w(f"  Paired epistemic delta BCa 95% CI [{e_ci[0]:+.2f}, {e_ci[1]:+.2f}] "
               "(B=10,000).")
@@ -457,13 +465,21 @@ def score(d):
       f"-> {'PASS' if value_ok else 'FAIL'}**")
     w("")
 
-    # ---------------- execution-spec §2.3 self-invalidation
+    # ---------------- execution-spec §2 criterion 4 self-invalidation
     pass_pairs = [(q_by_prompt[p].P(), b_by_prompt[p].P()) for p in paired_prompts]
     alphas, alpha_units = ordinal_alphas(answers)
+    bin_pairs = []
+    for a in answers.values():
+        s = a.ratings.get("critical_contradiction_verdict", {})
+        if "1" in s and "2" in s:
+            bin_pairs.append((int(s["1"]), int(s["2"])))
+    ac1, ac1_pa, ac1_pi = gwet_ac1(bin_pairs)
+    gate_reliabilities = dict(alphas)
+    gate_reliabilities["critical_contradiction_verdict"] = ac1
     invalid, (both_correct, both_incorrect, discordant, pair_n) = \
-        self_invalidation(pass_pairs, alphas)
+        self_invalidation(pass_pairs, gate_reliabilities)
     instrument_uninformative = any(invalid.values())
-    w("## Instrument self-invalidation (execution specification §2.3)")
+    w("## Instrument self-invalidation (execution specification §2 criterion 4)")
     w("")
     w(f"### {'INSTRUMENT UNINFORMATIVE' if instrument_uninformative else 'INSTRUMENT INFORMATIVE'}")
     w("")
@@ -474,9 +490,9 @@ def score(d):
       f"({'TRIGGERED' if invalid['floor'] else 'not triggered'}; threshold >=30%).")
     w(f"- Criterion 3, insufficient discordance: {discordant} discordant pairs "
       f"({'TRIGGERED' if invalid['discordance'] else 'not triggered'}; threshold <6).")
-    w("- Criterion 4, reliability floor: CANNOT TRIGGER — the set of rating "
-      "dimensions carrying a gate is empty. Available ordinal alphas are still "
-      "computed and reported below for transparency.")
+    w("- Criterion 4, reliability floor: critical_contradiction_verdict Gwet's AC1 "
+      f"is {f2(ac1)} ({'TRIGGERED' if invalid['reliability'] else 'not triggered'}; "
+      f"threshold <{ALPHA_MIN:.3f}).")
     w("- Criterion 5, blinding failure: NOT EVALUABLE — the current CSV contract "
       "does not capture configuration guesses.")
     w("")
@@ -565,9 +581,9 @@ def score(d):
       "reviewer.** Krippendorff's alpha across raters, Cohen's kappa and Gwet's AC1 "
       "across raters all require two or more independent raters and are not reported.")
     w("")
-    if alpha_units:
-        w("| Dimension | n re-scored | alpha (ordinal, test-retest) | Verdict |")
-        w("|---|---:|---:|---|")
+    if alpha_units or bin_pairs:
+        w("| Dimension | n re-scored | Statistic | Value | Verdict |")
+        w("|---|---:|---|---:|---|")
         for dim, us in sorted(alpha_units.items()):
             al = alphas[dim]
             if al is None:
@@ -575,19 +591,20 @@ def score(d):
             elif al >= ALPHA_FIRM: v = "firm"
             elif al >= ALPHA_MIN:  v = "tentative"
             else: v = "**UNRELIABLE — cannot support a validation gate**"
-            w(f"| {dim} | {len(us)} | {f2(al)} | {v} |")
+            w(f"| {dim} | {len(us)} | alpha (ordinal, test-retest) | {f2(al)} | {v} |")
+        if bin_pairs:
+            if ac1 is None: v = "not computable"
+            elif ac1 >= ALPHA_FIRM: v = "firm"
+            elif ac1 >= ALPHA_MIN: v = "tentative"
+            else: v = "**UNRELIABLE — cannot support a validation gate**"
+            w(f"| critical_contradiction_verdict | {len(bin_pairs)} | Gwet's AC1 "
+              f"(binary, test-retest) | {f2(ac1)} | {v} |")
         w("")
-    bin_pairs = []
-    for a in answers.values():
-        s = a.ratings.get("critical_contradiction_verdict", {})
-        if "1" in s and "2" in s:
-            bin_pairs.append((int(s["1"]), int(s["2"])))
     if bin_pairs:
-        ac1, pa, pi = gwet_ac1(bin_pairs)
-        w(f"- binary safety verdicts: raw agreement {pct(pa)}, prevalence {pct(pi)}, "
-          f"Gwet's AC1 {f2(ac1)} (n={len(bin_pairs)})")
-        w("  Raw agreement and prevalence are reported together because skewed "
-          "marginals collapse chance-corrected coefficients toward zero.")
+        w(f"- Binary safety-verdict context: raw agreement {pct(ac1_pa)}, "
+          f"prevalence {pct(ac1_pi)}. Raw agreement and prevalence are reported "
+          "together because skewed marginals collapse chance-corrected coefficients "
+          "toward zero.")
     w("")
     w("> Test-retest measures whether one judge is self-consistent. It does not "
       "measure independence and cannot detect a bias held consistently across both "
@@ -626,11 +643,12 @@ def score(d):
     # ---------------- per-answer appendix
     w("## Per-answer appendix")
     w("")
-    w("| answer | config | prompt | P | E | U | failed gates |")
-    w("|---|---|---|---:|---:|---:|---|")
+    w("| answer | config | prompt | P | E | U | critical numeric errors | failed gates |")
+    w("|---|---|---|---:|---:|---:|---:|---|")
     for a in sorted(answers.values(), key=lambda x: (x.prompt, x.config)):
         w(f"| {a.id} | {a.config} | {a.prompt} | {a.P()} | {f2(a.E())} | "
-          f"{f2(a.U())} | {', '.join(a.failed_gates()) or '-'} |")
+          f"{f2(a.U())} | {a.critical_numeric_error_count} | "
+          f"{', '.join(a.failed_gates()) or '-'} |")
     w("")
     return "\n".join(L), validated
 
@@ -727,9 +745,16 @@ def selftest():
     check("worked demonstration matches documented v1.1 verdict",
           validated and "### VALIDATED" in report and
           "The two rule sets disagree" in report)
+    check("worked demonstration four-head composite is 3.60",
+          math.isclose(q.composite_v10(), 3.60))
+    check("worked demonstration single-head composite is 3.80",
+          math.isclose(b.composite_v10(), 3.80))
     zero_variance_ci = bootstrap_ci([40.4567] * 20, B=10000)
     check("multi-observation zero-variance delta has point-mass CI",
           zero_variance_ci == (40.4567, 40.4567))
+    check("point-mass CI report discloses zero variance and no resampling",
+          "degenerate interval (zero variance, n=20); no resampling" in report and
+          "Paired epistemic delta BCa 95% CI [+40.46, +40.46]" not in report)
     original_reconciliation = runs[0][-3:]
     runs[0][-3:] = [8, 4, 5]
     wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
@@ -764,6 +789,27 @@ def selftest():
     wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
                       "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
                       "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
+    complete_cost_report, complete_cost_validated = score(d)
+    check("complete cost data retains the documented H4c result",
+          complete_cost_validated and
+          "| H4c mean metered cost <= $1.00 | 0.03 | PASS |" in complete_cost_report)
+    original_costs = [row[6] for row in runs if row[1] == "four_head"]
+    four_head_rows = [row for row in runs if row[1] == "four_head"]
+    for i, row in enumerate(four_head_rows):
+        row[6] = 3.00 if i < 6 else ""
+    wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
+    blank_cost_report, blank_cost_validated = score(d)
+    check("six $3 costs plus fourteen blanks fail H4c and validation",
+          not blank_cost_validated and
+          "| H4c mean metered cost <= $1.00 | missing metered cost | **FAIL** |"
+          in blank_cost_report)
+    for row, cost in zip(four_head_rows, original_costs):
+        row[6] = cost
+    wcsv("runs.csv", ["answer_id","config","prompt_id","completed","first_run",
+                      "latency_s","metered_cost_usd","omnigent_cost_reconciled_days",
+                      "unity_cost_reconciled_days","google_cloud_cost_reconciled_days"], runs)
     check("epistemic delta CI spanning zero produces NOT VALIDATED with hard gates passing",
           not validation_verdict(True, True, (-1.0, 1.0)))
     single_ci = bootstrap_ci([7.5], B=10000)
@@ -786,6 +832,48 @@ def selftest():
                                            {"evidence_quality": -1.0})
     check("non-gate ordinal reliability cannot trigger criterion 4",
           not nongate_invalid["reliability"])
+    low_ac1 = gwet_ac1([(0, 1)] * 5)[0]
+    low_invalid, _ = self_invalidation(
+        [(1, 0)] * 6, {"critical_contradiction_verdict": low_ac1})
+    check("critical-verdict AC1 below 0.667 triggers criterion 4",
+          low_ac1 < ALPHA_MIN and low_invalid["reliability"])
+    high_ac1 = gwet_ac1([(0, 0), (1, 1), (0, 0), (1, 1), (0, 0)])[0]
+    high_invalid, _ = self_invalidation(
+        [(1, 0)] * 6, {"critical_contradiction_verdict": high_ac1})
+    check("critical-verdict AC1 at least 0.667 does not trigger criterion 4",
+          high_ac1 >= ALPHA_MIN and not high_invalid["reliability"])
+    low_rating_rows = []
+    for i in range(1, 6):
+        low_rating_rows.extend([[f"Q{i:02d}", "critical_contradiction_verdict", 1, 0],
+                                [f"Q{i:02d}", "critical_contradiction_verdict", 2, 1]])
+    ratings.extend(low_rating_rows)
+    wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], ratings)
+    low_reliability_report, _ = score(d)
+    check("low critical-verdict AC1 is labelled UNRELIABLE in the table",
+          "| critical_contradiction_verdict | 5 | Gwet's AC1 (binary, test-retest) | -1.00 | **UNRELIABLE"
+          in low_reliability_report and
+          "Criterion 4, reliability floor: critical_contradiction_verdict Gwet's AC1 is -1.00 (TRIGGERED"
+          in low_reliability_report)
+    del ratings[-len(low_rating_rows):]
+    wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], ratings)
+    numeric_row = next(row for row in claims if row[0] == "Q02")
+    numeric_row[7] = 1
+    wcsv("claims.csv", ["answer_id","claim_id","weight","label","confidence",
+                        "fabricated_citation","critical_contradiction",
+                        "critical_numeric_error","internal_contradiction",
+                        "uncertainty_flagged"], claims)
+    numeric_report, _ = score(d)
+    numeric_answers = build(d)
+    check("critical numeric error is counted but does not fail K",
+          numeric_answers["Q02"].gates["K"] == 1 and
+          numeric_answers["Q02"].P() == 1 and
+          "| Q02 | four_head | P02 | 1 |" in numeric_report and
+          "| 1 | - |" in numeric_report)
+    numeric_row[7] = 0
+    wcsv("claims.csv", ["answer_id","claim_id","weight","label","confidence",
+                        "fabricated_citation","critical_contradiction",
+                        "critical_numeric_error","internal_contradiction",
+                        "uncertainty_flagged"], claims)
     print("="*64)
     print("SELFTEST", "PASSED" if ok else "FAILED")
     return 0 if ok else 2
