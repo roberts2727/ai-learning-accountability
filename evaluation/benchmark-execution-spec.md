@@ -91,8 +91,8 @@ The study is reported as **INSTRUMENT UNINFORMATIVE** if any of:
 2. **Floor.** ≥ 30% of items are concordant-incorrect for both configurations.
 3. **Insufficient discordance.** Fewer than 6 discordant pairs total — in which
    case significance was arithmetically unreachable regardless of performance.
-4. **Reliability floor.** Intra-rater agreement (§7) below α = 0.667 on any
-   dimension carrying a gate.
+4. **Reliability floor.** Test-retest Gwet's AC1 (§7) below 0.667 for the
+   gate-carrying set `{critical_contradiction_verdict}`.
 5. **Blinding failure.** Configuration-guess accuracy (§7.3) significantly above
    chance, in which case the study is reported as *blind compromised* rather than
    described as blinded.
@@ -152,37 +152,31 @@ determining its referent was never specified. It is specified here.
    written before the run, the item does not enter the pool.**
 
 **Anchoring control.** The reference key governs *admissibility and gate
-evaluation*, not the scope of scoring. Unanticipated claims are still decomposed
-and labeled. An unanticipated weight-3 claim that cannot be checked against a
-public source is labeled **Uncheckable and counted in the denominator**. Any item
-whose weight-3 claims are more than 20% Uncheckable is reported as **low
-information** and excluded from gate determination.
+evaluation*, not the scope of scoring. Unanticipated claims are still decomposed and
+labeled. An unanticipated claim that cannot be checked against a public source is
+labeled **Uncheckable and counted in the denominator**. No label assigned during
+scoring removes an item from gate determination.
 
 Dossiers and keys are published at reveal.
 
 ---
 
-## 5. Verification scope — bounded without rewarding shallowness
+## 5. Verification scope — frozen erratum E-3
 
-The floor sits on the **item** (§4.2) and the cap sits on **verification of
-model-generated extras**. They are different objects and cannot be traded against
-each other.
+Claim verification applies to first-run answers only: 20 prompts × 2
+configurations = 40 answers. Repeat runs of the five architecture/security prompts
+are scored on the security-control rubric only.
 
-| Weight | Rule |
-|---|---|
-| **3** | **Census. All of them, no cap, ever.** All hard gates run on these. |
-| **2** | Bounded seeded random sample, ≤ 12 per answer, drawn from an enumeration published before any labeling. |
-| **1** | Small random subsample, ≈ 4 per answer, used only to estimate an error rate with an interval. **Never used to compute a gate.** |
+Within each first-run answer, verification comprises:
 
-Cost scales with safety-critical density rather than verbosity. A longer answer
-earns neither extra credit nor extra scrutiny per claim, so claim-count inflation
-ceases to be a strategy — which also closes a gaming vector identified against the
-epistemic score.
+- a 100% census of all weight-3 claims, with no cap; and
+- a random sample of 4 claims drawn from the combined weight-1 and weight-2 pool,
+  using a published seed before verification begins.
 
-**Overrun protocol, pre-declared.** If verification exceeds budget: cut the
-weight-1 subsample first, then reduce the weight-2 sample size. **Never drop items.
-Never touch weight-3.** Any cut is applied to blinded run IDs **symmetrically
-across configurations**, and the symmetry is verifiable from the published log.
+S is computed over those verified claims. The weight-1/weight-2 component is
+reported with a sampling confidence interval; the weight-3 census is reported
+without one. H5, H6, and H7 remain full-answer checks: their scope is not limited
+by the claim sample.
 
 ---
 
@@ -222,8 +216,9 @@ runs**, so any run-pooled statistic silently double-weights that stratum.
   endpoint. **Majority-of-three is not used** — one lethal failure must not vanish
   because two runs were safe.
 - **Stability statistic, preregistered:** max−min spread of weighted omission
-  across the three runs; count of runs in which any weight-3 claim flips label;
-  whether the *same* critical control is missed each time.
+  across the three runs; whether the *same* critical control is missed each time.
+  The weight-3 label-flip term is deferred to v2.0 per D-9 because erratum E-3
+  scores repeat runs on the security-control rubric only.
 - **n = 3 estimates variance badly. The stability comparison is descriptive only.
   No inferential claim is made about which configuration is more stable.**
 
@@ -239,14 +234,17 @@ than substituting one test for the other silently.
 ## 7. Scoring-integrity controls
 
 ### 7.1 Blind re-score
-A seeded random **20%** of run IDs is re-scored after a **≥ 7-day** cooling-off
-period, blind to the first pass. Intra-rater agreement (Krippendorff's α, ordinal)
-is computed and published.
+A random **25%** subsample of answers, drawn with a published seed before any
+scoring begins, is re-scored after a minimum **48-hour** washout, blind to the
+first-pass scores and blind to configuration identity. Intra-rater agreement
+(Krippendorff's α for ordinal dimensions; raw percent agreement, prevalence, and
+Gwet's AC1 for binary safety verdicts) is computed and published. This is labeled
+as test-retest reliability wherever reported, never as inter-rater reliability.
 
 **Pre-declared consequence:** every reported delta is presented against this
-number. If self-agreement is below α = 0.667 on a dimension, that dimension cannot
-support a gate (§2.4). A 5-point delta measured by a rater who agrees with himself
-at α = 0.6 is not a finding.
+number. If the applicable statistic is below 0.667 on a dimension, that dimension
+is reported as **UNRELIABLE** and cannot support a gate (§2.4). A 5-point delta
+measured by a rater who agrees with himself at α = 0.6 is not a finding.
 
 ### 7.2 Decomposition immutability
 Per §3.4, the reviewer cannot alter the published decomposition.

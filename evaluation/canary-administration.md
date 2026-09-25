@@ -83,8 +83,8 @@ applied here.
 
 Defect *classes* are committed in `canary-taxonomy.md` and hashed pre-run. The
 reviewer knows the classes. The reviewer must never know the instances.
-Classes T-01, T-04, T-05, T-06 are burned (§15). Eligible: T-02, T-03, T-07,
-T-08, T-09, T-10.
+Classes T-01, T-04, T-05, T-06 are burned (§15). Eligible: T-02, T-07, T-09,
+T-10, consistent with the completed audit recorded in `canary-spec-changelog.md`.
 
 ---
 
@@ -359,7 +359,7 @@ informative than calling the mechanism "load-bearing."
    polished answer while evaluating architectural layout has not thereby shown that
    preferences on the 20 non-adversarial prompts are meaningless.
 5. **Residual reviewer knowledge.** After §4, the reviewer still knows canaries
-   exist, that there are four, that they come from six named classes, and that they
+   exist, that there are four, that they come from four named classes, and that they
    are fluent-vs-dry pairs. That leak is real; it is now measured (§9) rather than
    denied.
 6. **Sealing is procedural, not cryptographic.** §4.
