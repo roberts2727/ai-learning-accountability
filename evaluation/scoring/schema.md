@@ -108,7 +108,11 @@ the choice is recorded here rather than made silently at scoring time.
 5. **Execution-spec §2 criterion 4 coverage.** The sole gate-carrying rating
    dimension is `critical_contradiction_verdict`, because that judgment governs
    H3. Its Gwet's AC1 is compared with the 0.667 reliability floor: AC1 below
-   0.667 triggers criterion 4 and labels the dimension UNRELIABLE. Claim-support
+   0.667 triggers criterion 4 and labels the dimension UNRELIABLE. An AC1 that
+   cannot be computed (no re-scored verdict pairs) is reported as NOT COMPUTED and
+   also triggers criterion 4 (D-12). Whenever any §2 criterion is triggered, the
+   §R section is headed `NOT VALIDATED — INSTRUMENT UNINFORMATIVE` and the frozen
+   arithmetic result is shown only as superseded. Claim-support
    labels are not dimensions for this purpose. The current CSV contract has no
    configuration-guess field, so blinding-failure criterion 5 cannot be evaluated;
    the report states this explicitly rather than silently treating it as passed.
@@ -131,7 +135,10 @@ The self-test builds a synthetic fixture in which:
 - the **single-head** answer is a polished hallucination — clarity 5,
   actionability 5, but with two unsupported claims, one contradicted claim, one
   confident falsehood about a critical control, and one fabricated citation;
-- the reviewer prefers the polished hallucination on **all 20 prompts**.
+- the reviewer prefers the polished hallucination on **all 20 prompts**;
+- the 25% re-score subsample (10 of 40 answers) also re-scores
+  `critical_contradiction_verdict`, 0 in both sittings, so AC1 = 1.00 and
+  criterion 4 is not triggered (D-12).
 
 Result:
 
