@@ -92,7 +92,9 @@ The study is reported as **INSTRUMENT UNINFORMATIVE** if any of:
 3. **Insufficient discordance.** Fewer than 6 discordant pairs total — in which
    case significance was arithmetically unreachable regardless of performance.
 4. **Reliability floor.** Test-retest Gwet's AC1 (§7) below 0.667 for the
-   gate-carrying set `{critical_contradiction_verdict}`.
+   gate-carrying set `{critical_contradiction_verdict}`. If AC1 cannot be
+   computed because no re-scored verdict pairs exist, the criterion is triggered
+   (D-12): missing reliability evidence never counts as a pass.
 5. **Blinding failure.** Configuration-guess accuracy (§7.3) significantly above
    chance, in which case the study is reported as *blind compromised* rather than
    described as blinded.

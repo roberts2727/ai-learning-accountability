@@ -145,7 +145,9 @@ def self_invalidation(pairs, alphas):
         "ceiling": n > 0 and both_correct / n >= 0.60,
         "floor": n > 0 and both_incorrect / n >= 0.30,
         "discordance": discordant < 6,
-        "reliability": any(alphas.get(dim) is not None and
+        # D-12: an uncomputable gate-carrying statistic (no re-scored pairs)
+        # fails closed; missing reliability evidence never counts as a pass.
+        "reliability": any(alphas.get(dim) is None or
                            alphas[dim] < ALPHA_MIN
                            for dim in GATE_CARRYING_RATING_DIMS),
     }, (both_correct, both_incorrect, discordant, n)
@@ -490,9 +492,14 @@ def score(d):
       f"({'TRIGGERED' if invalid['floor'] else 'not triggered'}; threshold >=30%).")
     w(f"- Criterion 3, insufficient discordance: {discordant} discordant pairs "
       f"({'TRIGGERED' if invalid['discordance'] else 'not triggered'}; threshold <6).")
-    w("- Criterion 4, reliability floor: critical_contradiction_verdict Gwet's AC1 "
-      f"is {f2(ac1)} ({'TRIGGERED' if invalid['reliability'] else 'not triggered'}; "
-      f"threshold <{ALPHA_MIN:.3f}).")
+    if ac1 is None:
+        w("- Criterion 4, reliability floor: critical_contradiction_verdict Gwet's AC1 "
+          "is NOT COMPUTED — no re-scored pairs (TRIGGERED; D-12: missing "
+          "reliability evidence fails closed).")
+    else:
+        w("- Criterion 4, reliability floor: critical_contradiction_verdict Gwet's AC1 "
+          f"is {f2(ac1)} ({'TRIGGERED' if invalid['reliability'] else 'not triggered'}; "
+          f"threshold <{ALPHA_MIN:.3f}).")
     w("- Criterion 5, blinding failure: NOT EVALUABLE — the current CSV contract "
       "does not capture configuration guesses.")
     w("")
@@ -509,15 +516,22 @@ def score(d):
     w("")
 
     # ---------------- verdict
-    validated = validation_verdict(hard_pass, value_ok, e_ci)
+    arithmetic_validated = validation_verdict(hard_pass, value_ok, e_ci)
+    # D-12 / execution spec §2: under any triggered criterion the conclusion is
+    # "underpowered or compromised instrument"; a VALIDATED headline is never printed.
+    validated = arithmetic_validated and not instrument_uninformative
     w("## Frozen §R arithmetic verdict")
     w("")
-    w(f"### {'VALIDATED' if validated else 'NOT VALIDATED'}")
-    w("")
     if instrument_uninformative:
-        w("This arithmetic gate verdict does not override the execution-specification "
-          "self-invalidation result above and must not be interpreted as validation.")
+        w("### NOT VALIDATED — INSTRUMENT UNINFORMATIVE")
         w("")
+        w("Frozen §R arithmetic alone would give: "
+          f"{'VALIDATED' if arithmetic_validated else 'NOT VALIDATED'}. It is superseded "
+          "by the execution-specification self-invalidation result above and must not "
+          "be interpreted as validation.")
+    else:
+        w(f"### {'VALIDATED' if validated else 'NOT VALIDATED'}")
+    w("")
     if not validated:
         w("A completed run that misses thresholds remains useful evidence and is "
           "published regardless (§R, and v1.0).")
@@ -690,6 +704,12 @@ def selftest():
                 ratings.append([aid, dim, 1, v])
                 if i <= 5:                   # 25% re-scored subsample
                     ratings.append([aid, dim, 2, v])
+            # D-12: the gate-carrying binary verdict is re-scored on the same
+            # subsample (10 of 40 first-run answers); no critical contradiction
+            # is present in either sitting, so AC1 = raw agreement = 1.00.
+            ratings.append([aid, "critical_contradiction_verdict", 1, 0])
+            if i <= 5:
+                ratings.append([aid, "critical_contradiction_verdict", 2, 0])
             for j, lab in enumerate(labs):
                 claims.append([aid, f"{aid}-c{j}", "3" if j < 3 else "1", lab,
                                0.9 if lab == "supported" else 0.6,
@@ -829,7 +849,8 @@ def selftest():
     check("fewer than six discordant pairs self-invalidates instrument",
           sparse_counts[2] == 5 and sparse_invalid["discordance"])
     nongate_invalid, _ = self_invalidation([(1, 0)] * 6,
-                                           {"evidence_quality": -1.0})
+                                           {"evidence_quality": -1.0,
+                                            "critical_contradiction_verdict": 1.0})
     check("non-gate ordinal reliability cannot trigger criterion 4",
           not nongate_invalid["reliability"])
     low_ac1 = gwet_ac1([(0, 1)] * 5)[0]
@@ -842,19 +863,41 @@ def selftest():
         [(1, 0)] * 6, {"critical_contradiction_verdict": high_ac1})
     check("critical-verdict AC1 at least 0.667 does not trigger criterion 4",
           high_ac1 >= ALPHA_MIN and not high_invalid["reliability"])
+    none_invalid, _ = self_invalidation(
+        [(1, 0)] * 6, {"critical_contradiction_verdict": None})
+    missing_invalid, _ = self_invalidation([(1, 0)] * 6, {})
+    check("D-12: uncomputable critical-verdict AC1 triggers criterion 4",
+          gwet_ac1([])[0] is None and none_invalid["reliability"]
+          and missing_invalid["reliability"])
+    check("D-12: all-zero re-scored verdicts give AC1 1.00 and do not trigger",
+          "critical_contradiction_verdict Gwet's AC1 is 1.00 (not triggered" in report
+          and "### INSTRUMENT INFORMATIVE" in report)
+    kept = [r for r in ratings
+            if not (r[1] == "critical_contradiction_verdict" and r[2] == 2)]
+    wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], kept)
+    no_pairs_report, no_pairs_validated = score(d)
+    check("D-12: no re-scored verdict pairs -> NOT COMPUTED, uninformative, never VALIDATED",
+          "Gwet's AC1 is NOT COMPUTED" in no_pairs_report
+          and "### NOT VALIDATED — INSTRUMENT UNINFORMATIVE" in no_pairs_report
+          and "### VALIDATED" not in no_pairs_report
+          and "would give: VALIDATED" in no_pairs_report
+          and not no_pairs_validated)
+    wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], ratings)
     low_rating_rows = []
     for i in range(1, 6):
         low_rating_rows.extend([[f"Q{i:02d}", "critical_contradiction_verdict", 1, 0],
                                 [f"Q{i:02d}", "critical_contradiction_verdict", 2, 1]])
-    ratings.extend(low_rating_rows)
-    wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], ratings)
+    # Replace (not add to) the fixture's verdict re-score rows so the low-AC1
+    # case is evaluated on exactly these five pairs.
+    low_ratings = [r for r in ratings
+                   if r[1] != "critical_contradiction_verdict"] + low_rating_rows
+    wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], low_ratings)
     low_reliability_report, _ = score(d)
     check("low critical-verdict AC1 is labelled UNRELIABLE in the table",
           "| critical_contradiction_verdict | 5 | Gwet's AC1 (binary, test-retest) | -1.00 | **UNRELIABLE"
           in low_reliability_report and
           "Criterion 4, reliability floor: critical_contradiction_verdict Gwet's AC1 is -1.00 (TRIGGERED"
           in low_reliability_report)
-    del ratings[-len(low_rating_rows):]
     wcsv("ratings.csv", ["answer_id","dimension","sitting","value"], ratings)
     numeric_row = next(row for row in claims if row[0] == "Q02")
     numeric_row[7] = 1
